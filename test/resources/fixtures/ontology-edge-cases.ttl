@@ -1,0 +1,18 @@
+@prefix ex: <http://example.org/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:C a owl:Class ; rdfs:label "C"@en , "C"^^xsd:string ; rdfs:subClassOf [ a owl:Restriction ; owl:onProperty ex:p ; owl:someValuesFrom [ owl:unionOf ( ex:A ex:B [ owl:complementOf ex:D ] ) ] ] .
+ex:A a rdfs:Class .
+ex:deep rdfs:comment [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n [ ex:n "end" ] ] ] ] ] ] ] ] ] ] ] ] .
+ex:i1 a owl:NamedIndividual ; owl:sameAs ex:i1 ; ex:addr [ ex:street "x" ; ex:geo [ ex:lat 1.5 ] ] ; ex:knows ex:i2 .
+ex:i2 a owl:NamedIndividual ; ex:addr [ ex:street "y" ] ; ex:knows ex:i3 .
+ex:i3 ex:addr [ ex:street "z" ] ; ex:name "three" .
+ex:lst a owl:NamedIndividual ; rdf:first ex:i3 ; rdf:rest ( ex:i2 [ ex:q 1 ] ) .
+_:r a owl:Restriction ; owl:onProperty ex:k ; owl:hasValue ex:i1 .
+_:c1 ex:loop _:c2 . _:c2 ex:loop _:c1 .
+ex:E a owl:Class ; rdfs:seeAlso _:c1 .
+_:s ex:points ex:i2 .
+ex:i4 a owl:NamedIndividual ; ex:self ex:i4 ; ex:b [ ex:v 2 ] .

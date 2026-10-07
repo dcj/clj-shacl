@@ -106,11 +106,13 @@
            (keyset (shacl/validate (read-people "bob.jsonld") shapes))))))
 
 (deftest inoculate-matches-pyshacl
-  (let [ontology (shacl/read-turtle (fixture "ontology.ttl"))
-        expected (ntriples (fixture "ontology-inoculated.nt"))
-        actual (shacl/inoculate ontology)]
-    (is (= (.size expected) (.size actual)))
-    (is (.isIsomorphicWith expected actual))))
+  (doseq [[ontology inoculated] [["ontology.ttl" "ontology-inoculated.nt"]
+                                 ["ontology-edge-cases.ttl" "ontology-edge-cases-inoculated.nt"]]]
+    (testing ontology
+      (let [expected (ntriples (fixture inoculated))
+            actual (shacl/inoculate (shacl/read-turtle (fixture ontology)))]
+        (is (= (.size expected) (.size actual)))
+        (is (.isIsomorphicWith expected actual))))))
 
 (defn- ex-iri ^Node [local] (NodeFactory/createURI (str ex local)))
 

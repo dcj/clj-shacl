@@ -111,7 +111,6 @@
 (def ^:private rdf-rest (iri (str rdf "rest")))
 (def ^:private rdf-nil (iri (str rdf "nil")))
 (def ^:private owl-named-individual (iri (str owl "NamedIndividual")))
-(def ^:private owl-same-as (iri (str owl "sameAs")))
 
 (def ^:private rdfs-classes
   (mapv #(iri (str rdfs %))
@@ -224,12 +223,7 @@
     (add! target
           subject
           p
-          (clone-node g
-                      o
-                      target
-                      (inc recursion)
-                      (and deep?
-                           (not (and (= p owl-same-as) (= o node))))))))
+          (clone-node g o target (inc recursion) deep?))))
 
 (defn- clone-blank-node
   [g node target recursion]
