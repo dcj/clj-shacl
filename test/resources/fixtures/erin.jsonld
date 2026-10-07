@@ -1,0 +1,8 @@
+{
+  "@context": "https://example.org/person/context",
+  "@id": "http://example.org/erin",
+  "@type": "Person",
+  "name": "Erin",
+  "email": "erin@example.org",
+  "address": {"@id": "http://example.org/headquarters"}
+}

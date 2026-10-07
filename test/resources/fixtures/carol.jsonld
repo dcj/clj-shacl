@@ -1,0 +1,11 @@
+{
+  "@context": {
+    "ex": "http://example.org/",
+    "name": "ex:name",
+    "phone": "ex:phone"
+  },
+  "@id": "ex:carol",
+  "@type": "ex:Person",
+  "name": "Carol",
+  "phone": "+1-555-0100"
+}

@@ -1,0 +1,6 @@
+{
+  "@context": {"name": "http://example.com/vocab/name"},
+  "@id": "http://example.com/dave",
+  "@type": "http://example.com/vocab/Person",
+  "name": "Dave"
+}

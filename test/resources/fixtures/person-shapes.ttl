@@ -1,0 +1,29 @@
+@prefix ex: <http://example.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:PersonShape a sh:NodeShape ;
+  sh:targetClass ex:Person ;
+  sh:property [
+    sh:path ex:name ;
+    sh:minCount 1 ;
+    sh:datatype xsd:string ] ;
+  sh:property [
+    sh:path ex:age ;
+    sh:datatype xsd:integer ;
+    sh:maxInclusive 150 ] ;
+  sh:property [
+    sh:path ex:address ;
+    sh:class ex:Address ;
+    sh:node ex:AddressShape ] ;
+  sh:or (
+    [ sh:path ex:email ; sh:minCount 1 ]
+    [ sh:path ex:phone ; sh:minCount 1 ]
+  ) .
+
+ex:AddressShape a sh:NodeShape ;
+  sh:property [
+    sh:path ex:postalCode ;
+    sh:minCount 1 ;
+    sh:pattern "^[0-9]{5}$" ;
+    sh:message "A postal code is five digits." ] .

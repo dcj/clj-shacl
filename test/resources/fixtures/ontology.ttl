@@ -1,0 +1,41 @@
+@prefix ex: <http://example.org/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:ontology a owl:Ontology ;
+  owl:versionInfo "1.0" .
+
+ex:Agent a owl:Class ;
+  rdfs:label "Agent"@en .
+
+ex:Person a owl:Class ;
+  rdfs:subClassOf ex:Agent ,
+    [ a owl:Restriction ;
+      owl:onProperty ex:address ;
+      owl:someValuesFrom ex:Address ] .
+
+ex:Organization a owl:Class ;
+  rdfs:subClassOf ex:Agent .
+
+ex:Address a owl:Class .
+
+ex:Contact a owl:Class ;
+  owl:unionOf ( ex:Person ex:Organization ) .
+
+ex:address a owl:ObjectProperty ;
+  rdfs:domain ex:Person ;
+  rdfs:range ex:Address .
+
+ex:name a owl:DatatypeProperty ;
+  rdfs:range xsd:string .
+
+ex:headquarters a ex:Address , owl:NamedIndividual ;
+  ex:postalCode "94110" ;
+  ex:geo [ ex:lat "37.75"^^xsd:decimal ; ex:long "-122.41"^^xsd:decimal ] .
+
+ex:acme a ex:Organization ;
+  ex:address ex:headquarters .
+
+ex:bob a ex:Person ;
+  ex:name "Bob" .

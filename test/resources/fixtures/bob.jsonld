@@ -1,0 +1,11 @@
+{
+  "@context": "https://example.org/person/context",
+  "@id": "http://example.org/bob",
+  "@type": "Person",
+  "name": "Bob",
+  "age": 151,
+  "address": {
+    "@type": "Address",
+    "postalCode": "9411"
+  }
+}

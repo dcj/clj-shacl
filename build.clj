@@ -1,0 +1,254 @@
+(ns build
+  (:refer-clojure :exclude [test])
+  (:require [build-provenance.write :as bp]
+            [clojure.edn :as edn]
+            [clojure.java.io :as io]
+            [clojure.java.shell :as shell]
+            [clojure.string :as str]
+            [clojure.tools.build.api :as b]
+            [codox.md.build :as doc]
+            [deps-deploy.deps-deploy :as dd])
+  (:import [java.util.zip ZipFile]
+           [javax.xml.parsers DocumentBuilderFactory]))
+
+(def lib 'com.dcj/clj-shacl)
+(def version "0.1.0")
+(def class-dir "target/classes")
+(def ^:private description "Validate RDF against SHACL shapes with Apache Jena, from Clojure")
+(def ^:private url "https://github.com/dcj/clj-shacl")
+
+(defn test "Run all the tests." [opts]
+  (let [basis    (b/create-basis {:aliases [:test]})
+        cmds     (b/java-command
+                  {:basis      basis
+                   :main      'clojure.main
+                   :main-args ["-m" "kaocha.runner"]})
+        {:keys [exit]} (b/process cmds)]
+    (when-not (zero? exit) (throw (ex-info "Tests failed" {}))))
+  opts)
+
+(defn- jar-opts [opts]
+  (assoc opts
+         :lib lib :version version
+         :jar-file (format "target/%s-%s.jar" (name lib) version)
+         :description description
+         :url url
+         :pom-data [[:description description]
+                    [:url url]
+                    [:licenses
+                     [:license
+                      [:name "MIT"]
+                      [:url "https://opensource.org/licenses/MIT"]]]]
+         :scm {:tag (str "v" version)
+               :url url}
+         :basis (b/create-basis {})
+         :class-dir class-dir
+         :target "target"
+         :src-dirs ["src"]))
+
+(def ^:private changelog-entry
+  (format "docs/%s/%s/guides/CHANGELOG.md" (namespace lib) (name lib)))
+
+(def ^:private license-entry "META-INF/LICENSE")
+
+(def ^:private pom-entry
+  (format "META-INF/maven/%s/%s/pom.xml" (namespace lib) (name lib)))
+
+(defn- check-jar-entry!
+  "Throw unless the jar carries `entry`."
+  [{:keys [jar-file]} entry]
+  (with-open [z (ZipFile. (io/file jar-file))]
+    (when-not (.getEntry z entry)
+      (throw (ex-info (str jar-file " lacks " entry)
+                      {:jar-file jar-file :entry entry})))))
+
+(defn- pom-project-children
+  "The text of each direct child of the pom's <project>, by tag name."
+  [in]
+  (let [root  (.getDocumentElement
+               (.parse (.newDocumentBuilder (DocumentBuilderFactory/newInstance)) in))
+        ^org.w3c.dom.NodeList nodes (.getChildNodes root)]
+    (into {}
+          (for [i (range (.getLength nodes))
+                :let [n (.item nodes (int i))]
+                :when (instance? org.w3c.dom.Element n)]
+            [(.getTagName ^org.w3c.dom.Element n) (str/trim (.getTextContent n))]))))
+
+(defn- check-jar-pom!
+  "Throw unless the jar's pom names the project's description and url, which
+   Clojars and cljdoc show. tools.build ignores top-level :description and :url,
+   so they reach the pom only through :pom-data."
+  [{:keys [jar-file description url]}]
+  (with-open [z (ZipFile. (io/file jar-file))]
+    (let [e        (.getEntry z pom-entry)
+          children (when e (with-open [in (.getInputStream z e)] (pom-project-children in)))
+          wanted   {"description" description "url" url}
+          missing  (into [] (remove #(= (wanted %) (get children %))) (keys wanted))]
+      (when (seq missing)
+        (throw (ex-info (str jar-file " pom lacks " (str/join ", " missing))
+                        {:jar-file jar-file :entry pom-entry :missing missing}))))))
+
+(declare git jar-provenance)
+
+(defn- check-jar-provenance!
+  "Throw unless the jar carries build-provenance naming HEAD."
+  [{:keys [jar-file]}]
+  (let [head (git "rev-parse" "HEAD")
+        prov (jar-provenance jar-file)]
+    (when-not (= head (:commit prov))
+      (throw (ex-info (str jar-file " carries no build-provenance naming HEAD " head)
+                      {:jar-file jar-file :head head :provenance prov})))))
+
+(defn ci "Run the CI pipeline of tests (and build the JAR)." [opts]
+  (test opts)
+  (b/delete {:path "target"})
+  (let [opts (jar-opts opts)]
+    (println "\nWriting pom.xml...")
+    (b/write-pom opts)
+    (println "\nGenerating API docs...")
+    (doc/generate-docs {:lib lib :version version
+                        :description (:description opts)
+                        :source-uri (str (get-in opts [:scm :url])
+                                         "/blob/{git-commit}/{filepath}#L{line}")})
+    (b/copy-file {:src "CHANGELOG.md"
+                  :target (str "target/doc-resources/" changelog-entry)})
+    (println "\nCopying source...")
+    (b/copy-dir {:src-dirs ["resources" "src" "target/doc-resources"]
+                 :target-dir class-dir})
+    (b/copy-file {:src "LICENSE" :target (str class-dir "/" license-entry)})
+    (println "\nWriting build provenance...")
+    (bp/write! {:lib lib :version version :class-dir class-dir})
+    (println "\nBuilding JAR...")
+    (b/jar opts)
+    (check-jar-entry! opts changelog-entry)
+    (check-jar-entry! opts license-entry)
+    (check-jar-pom! opts)
+    (check-jar-provenance! opts))
+  opts)
+
+;; ---------------------------------------------------------------------------
+;; Release preconditions
+;;
+;; `deploy` publishes whatever is in target/. The build-provenance embedded in
+;; the jar records the commit it was built from, so each check below compares
+;; the artifact itself against HEAD.
+;; ---------------------------------------------------------------------------
+
+(defn- git [& args]
+  (let [{:keys [exit out err]} (apply shell/sh "git" args)]
+    (when-not (zero? exit)
+      (throw (ex-info (str "git " (str/join " " args) " failed: " (str/trim (or err "")))
+                      {:args args :exit exit :err (str/trim (or err ""))})))
+    (str/trim out)))
+
+(defn- refuse [msg data]
+  (throw (ex-info (str "REFUSING TO DEPLOY: " msg) data)))
+
+(defn- jar-provenance
+  "The build-provenance the JAR carries, or nil when it carries none or the
+   jar is unreadable."
+  [jar-file]
+  (let [entry (format "META-INF/%s/%s/build-provenance.edn" (namespace lib) (name lib))
+        f     (io/file jar-file)]
+    (when (.isFile f)
+      (try
+        (with-open [z (ZipFile. f)]
+          (when-let [e (.getEntry z entry)]
+            (with-open [in (.getInputStream z e)]
+              (edn/read-string (slurp in)))))
+        (catch Exception _ nil)))))
+
+(defn- check-deployable!
+  "Refuse unless this jar was built by `ci`, from THIS commit, on a clean tree,
+   at a version that is tagged and released."
+  [{:keys [jar-file]}]
+  (let [head  (git "rev-parse" "HEAD")
+        dirty (seq (git "status" "--porcelain"))
+        prov  (jar-provenance jar-file)]
+    (when (str/ends-with? version "-SNAPSHOT")
+      (refuse (str "version is " version ". A snapshot is a work in progress, not a release.")
+              {:version version}))
+    (when dirty
+      (refuse "the working tree has uncommitted changes, so the artifact would not correspond to any commit."
+              {:dirty (git "status" "--porcelain")}))
+    ;; `ci` copies src/ and resources/ whole, and neither `git status
+    ;; --porcelain` nor build-provenance reports ignored files.
+    (let [;; The patterns b/copy-dir already leaves out of the jar
+          ;; (clojure.tools.build.tasks.copy/default-ignores).
+          packed?   (fn [line]
+                      (let [base (-> line (str/split #"\s+" 2) second (or "") (str/split #"/") last)]
+                        (not (some #(re-find % base)
+                                   [#"~$" #"^#.*#$" #"^\.#" #"^\.DS_Store$"]))))
+          ;; -uall so git names files rather than collapsing a directory.
+          stowaways (->> (str/split-lines
+                          (git "status" "--porcelain" "--ignored" "-uall" "src" "resources"))
+                         (remove str/blank?)
+                         (filter #(str/starts-with? % "!!"))
+                         (filter packed?))]
+      (when (seq stowaways)
+        (refuse (str "src/ or resources/ holds " (count stowaways)
+                     " file(s) git is ignoring, and the jar packs those directories whole: "
+                     (pr-str (vec stowaways))
+                     ". Remove them, or commit them, so the artifact matches the commit.")
+                {:stowaways (vec stowaways)})))
+    (when (str/blank? (git "tag" "-l" (str "v" version)))
+      (refuse (str "there is no tag v" version ". Run `clojure -T:build tag`, or tag the commit "
+                   "you are shipping, so the artifact can be traced back to a commit.")
+              {:version version}))
+    (when-not (= head (git "rev-parse" (str "v" version "^{commit}")))
+      (refuse (str "tag v" version " does not point at HEAD. Tag the commit you are shipping.")
+              {:head head :version version}))
+    (when-not prov
+      (refuse (str "no build-provenance in " jar-file
+                   ". Run `clojure -T:build ci` first; `deploy` publishes what is already in target/ "
+                   "and does not build it.")
+              {:jar-file jar-file}))
+    (when-not (= version (:version prov))
+      (refuse (str "the jar was built at version " (pr-str (:version prov))
+                   " but this deploy is for " version ". target/ is stale; run `ci`.")
+              {:jar (:version prov) :deploying version}))
+    (when-not (= head (:commit prov))
+      (refuse (str "the jar was built from commit " (:commit-abbreviated prov)
+                   " but HEAD is " (subs head 0 7) ". target/ is stale; run `ci`.")
+              {:jar-commit (:commit prov) :head head}))
+    (when (:dirty prov)
+      (refuse "the jar was built from a dirty tree, so its provenance names a commit it does not match."
+              {:provenance prov}))
+    (when (str/blank? (System/getenv "CLOJARS_PASSWORD"))
+      (refuse "CLOJARS_PASSWORD is unset. Pass the group-scoped token rather than discovering this as a 401."
+              {}))
+    (println (str "\nPreconditions OK: " version " @ " (:commit-abbreviated prov)
+                  ", tagged, clean, built by ci."))))
+
+(defn install "Install the JAR locally." [opts]
+  (let [opts (jar-opts opts)]
+    (b/install opts))
+  opts)
+
+(defn deploy
+  "Deploy the JAR to Clojars, after checking it is the one this commit built.
+
+   Pass :force true to skip the checks."
+  [opts]
+  (let [{:keys [jar-file] :as opts} (jar-opts opts)]
+    (when-not (:force opts)
+      (check-deployable! opts))
+    (dd/deploy {:installer :remote :artifact (b/resolve-path jar-file)
+                :pom-file (b/pom-path (select-keys opts [:lib :class-dir]))}))
+  opts)
+
+(defn tag
+  "Tag HEAD as v<version>, refusing on a snapshot or a dirty tree."
+  [opts]
+  (when (str/ends-with? version "-SNAPSHOT")
+    (throw (ex-info (str "REFUSING TO TAG: version is " version) {:version version})))
+  (when (seq (git "status" "--porcelain"))
+    (throw (ex-info "REFUSING TO TAG: the working tree has uncommitted changes" {})))
+  (git "tag" "-a" (str "v" version) "-m" (str "Release " version))
+  (println (str "\nTagged v" version " at " (git "rev-parse" "--short" "HEAD")))
+  opts)
+
+(defn release
+  "Build and test with `ci`, verify the artifact, then `deploy` it."
+  [opts]
+  (-> opts ci deploy))
