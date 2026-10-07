@@ -53,6 +53,7 @@ Requires Java 21 or later (Jena 6).
 ;;                :component "http://www.w3.org/ns/shacl#MinCountConstraintComponent"
 ;;                :severity :violation
 ;;                :value nil
+;;                :value-node nil
 ;;                :message "minCount[1]: Invalid cardinality: expected min 1: Got count = 0"
 ;;                :source-shape "_:9fffa06e88c16ff740c337a4a524cfe3"}]}
 ```

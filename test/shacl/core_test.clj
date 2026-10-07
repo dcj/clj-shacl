@@ -115,7 +115,18 @@
       (is (contains? by-path (str "<" ex "a>/<" ex "b>"))))
     (testing "a literal value is its lexical form"
       (is (= "abc" (:value (by-path (str ex "w")))))
-      (is (= "y" (:value (by-path (str ex "lang"))))))))
+      (is (= "y" (:value (by-path (str ex "lang"))))))
+    (testing ":value-node keeps the term kind, language tag and datatype"
+      (let [lang (:value-node (by-path (str ex "lang")))
+            iri (:value-node (by-path (str ex "c")))
+            en (:value-node (by-path (str ex "w")))]
+        (is (.isLiteral lang))
+        (is (= "fr" (.getLiteralLanguage lang)))
+        (is (.isURI iri))
+        (is (= (str ex "o") (.getURI iri)))
+        (is (= "en" (.getLiteralLanguage en)))
+        (is (= "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+               (.getLiteralDatatypeURI en)))))))
 
 (deftest validate-accepts-parsed-shapes
   (let [shapes (Shapes/parse ^Graph @person-shapes)]

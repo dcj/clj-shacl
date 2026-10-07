@@ -85,7 +85,7 @@
 
 (defn- report-data
   [report]
-  (update report :results (partial mapv #(dissoc % :focus-node))))
+  (update report :results (partial mapv #(dissoc % :focus-node :value-node))))
 
 (defn- print-text
   [{:keys [conforms? results]}]

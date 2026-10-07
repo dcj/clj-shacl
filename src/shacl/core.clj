@@ -336,6 +336,7 @@
      :component (node-str (.sourceConstraintComponent e))
      :severity (get severities severity (node-str (.level severity)))
      :value (node-str (.value e))
+     :value-node (.value e)
      :message (.message e)
      :source-shape (node-str (.source e))}))
 
@@ -344,7 +345,7 @@
   `org.apache.jena.shacl.Shapes`.
 
   Returns `{:conforms? bool :results [...]}`. Each result holds
-  `:focus-node`, the Jena node, and these strings: `:focus`, `:path` (nil
+  `:focus-node` and `:value-node`, the Jena nodes, and these strings: `:focus`, `:path` (nil
   for a node-level result; the SPARQL path syntax for a complex path),
   `:component`, `:value`, `:message` and `:source-shape`. `:severity` is
   `:violation`, `:warning` or `:info`, or the IRI of another severity.

@@ -7,6 +7,12 @@ SPDX-License-Identifier: MIT
 
 Notable changes to [`com.dcj/clj-shacl`](https://clojars.org/com.dcj/clj-shacl). The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- `validate` results carry `:value-node`, the Jena node behind `:value`, so a literal's language tag and datatype and the difference between a literal and an IRI survive.
+
 ## [0.1.0] - 2026-10-07
 
 ### Added
