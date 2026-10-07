@@ -49,10 +49,10 @@ gh release create vX.Y.Z --title vX.Y.Z --notes-file /tmp/notes.md --latest
 
 ```bash
 clj-kondo --lint src test dev
-markdownlint-cli2 README.md CHANGELOG.md 'doc/*.md'
+markdownlint-cli2 README.md CHANGELOG.md CONTRIBUTING.md SECURITY.md RELEASING.md
 reuse lint
 ```
 
 ## What lands in the jar
 
-Beyond the sources: the MIT notice at `META-INF/LICENSE`; Markdown API docs, the `doc/` guides and `CHANGELOG.md` under `docs/com.dcj/clj-shacl/`; and build provenance at `META-INF/com.dcj/clj-shacl/build-provenance.{edn,json}`.
+Beyond the sources: the MIT notice at `META-INF/LICENSE`; Markdown API docs and `CHANGELOG.md` under `docs/com.dcj/clj-shacl/`; and build provenance at `META-INF/com.dcj/clj-shacl/build-provenance.{edn,json}`.
