@@ -18,7 +18,7 @@ Requires Java 21 or later (Jena 6).
 `deps.edn`:
 
 ```clojure
-{:deps {com.dcj/clj-shacl {:mvn/version "0.1.0"}}}
+{:deps {com.dcj/clj-shacl {:mvn/version "0.2.0"}}}
 ```
 
 ## Usage
