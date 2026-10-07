@@ -12,7 +12,7 @@
            [javax.xml.parsers DocumentBuilderFactory]))
 
 (def lib 'com.dcj/clj-shacl)
-(def version "0.2.0")
+(def version "0.3.0-SNAPSHOT")
 (def class-dir "target/classes")
 (def ^:private description "Validate RDF against SHACL shapes with Apache Jena, from Clojure")
 (def ^:private url "https://github.com/dcj/clj-shacl")
