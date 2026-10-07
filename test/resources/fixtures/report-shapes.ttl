@@ -1,0 +1,11 @@
+@prefix ex: <http://example.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+ex:S a sh:NodeShape ; sh:targetClass ex:T ;
+  sh:property [ sh:path ex:w ; sh:datatype xsd:integer ; sh:severity sh:Warning ] ;
+  sh:property [ sh:path ex:i ; sh:maxCount 0 ; sh:severity sh:Info ] ;
+  sh:property [ sh:path ex:c ; sh:maxCount 0 ; sh:severity ex:Custom ] ;
+  sh:property [ sh:path [ sh:inversePath ex:inv ] ; sh:maxCount 0 ] ;
+  sh:property [ sh:path ( ex:a ex:b ) ; sh:maxCount 0 ] ;
+  sh:property [ sh:path ex:bn ; sh:maxCount 0 ] ;
+  sh:property [ sh:path ex:lang ; sh:in ( "x" ) ] .

@@ -64,7 +64,7 @@ A source is a file path String, or anything else `clojure.java.io/input-stream` 
 | `read-jsonld` | parses JSON-LD sources into one graph, each source with its own blank nodes; a remote context outside `:contexts` throws |
 | `read-turtle` | parses one Turtle source |
 | `inoculate` | returns the ontology triples pyshacl's `inoculate()` mixes into a data graph |
-| `targets-any?` | whether any class in the data is a shape target, since a graph no shape targets conforms vacuously |
+| `targets-any?` | whether any class in the data is a shape target; when none is, no class-targeted shape checks anything |
 | `validate` | validates and returns the report as Clojure data |
 
 ### Validating with an ontology

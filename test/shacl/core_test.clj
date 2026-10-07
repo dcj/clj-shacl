@@ -100,6 +100,23 @@
         (is (string? (:message age)))
         (is (re-matches #"_:.+" (:source-shape age)))))))
 
+(deftest validate-maps-severities-paths-and-values
+  (let [report (shacl/validate (shacl/read-turtle (fixture "report-data.ttl"))
+                               (shacl/read-turtle (fixture "report-shapes.ttl")))
+        by-path (into {} (map (juxt :path identity)) (:results report))]
+    (is (= 7 (count (:results report))))
+    (testing "severities"
+      (is (= :warning (:severity (by-path (str ex "w")))))
+      (is (= :info (:severity (by-path (str ex "i")))))
+      (is (= (str ex "Custom") (:severity (by-path (str ex "c")))))
+      (is (= :violation (:severity (by-path (str ex "bn"))))))
+    (testing "a complex path is in SPARQL path syntax"
+      (is (contains? by-path (str "^<" ex "inv>")))
+      (is (contains? by-path (str "<" ex "a>/<" ex "b>"))))
+    (testing "a literal value is its lexical form"
+      (is (= "abc" (:value (by-path (str ex "w")))))
+      (is (= "y" (:value (by-path (str ex "lang"))))))))
+
 (deftest validate-accepts-parsed-shapes
   (let [shapes (Shapes/parse ^Graph @person-shapes)]
     (is (= (keyset (shacl/validate (read-people "bob.jsonld") @person-shapes))

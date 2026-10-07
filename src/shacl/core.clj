@@ -299,8 +299,7 @@
   "True when some class asserted with rdf:type in `data` is a shape target in
   `shapes`: the object of an sh:targetClass, or itself an sh:NodeShape.
 
-  A false result means every class-targeted shape selects no focus node, so
-  validation conforms without checking anything."
+  A false result means no class-targeted shape selects a focus node."
   [^Graph data ^Graph shapes]
   (let [data-types (set (objects data nil rdf-type))
         targeted (into (set (objects shapes nil (iri (str sh "targetClass"))))

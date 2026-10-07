@@ -1,0 +1,3 @@
+@prefix ex: <http://example.org/> .
+ex:n a ex:T ; ex:w "abc"@en ; ex:i 1 ; ex:c ex:o ; ex:a [ ex:b ex:z ] ; ex:bn [ ex:q 1 ] ; ex:lang "y"@fr .
+ex:m ex:inv ex:n .
