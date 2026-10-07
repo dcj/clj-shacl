@@ -1,0 +1,27 @@
+{:paths ["src" "resources"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}
+        org.apache.jena/jena-arq {:mvn/version "6.2.0"}
+        org.apache.jena/jena-shacl {:mvn/version "6.2.0"}}
+
+ :aliases {:dev {:extra-paths ["dev"]}
+
+           :cli {:main-opts ["-m" "shacl.cli"]}
+
+           :build {:deps {io.github.clojure/tools.build
+                          {:git/tag "v0.10.10" :git/sha "deedd62"}
+                          slipset/deps-deploy {:mvn/version "0.2.2"}
+                          com.dcj/codox-md {:mvn/version "0.2.0"}
+                          com.dcj/build-provenance {:mvn/version "0.2.0"}}
+                   :ns-default build}
+
+           :nrepl {:extra-paths ["dev" "test"]
+                   :extra-deps {nrepl/nrepl {:mvn/version "1.6.0"}
+                                cider/cider-nrepl {:mvn/version "0.50.3"}
+                                com.dcj/clj-doc-browse {:mvn/version "0.1.0"}}
+                   :jvm-opts ["-Djdk.attach.allowAttachSelf"]
+                   :main-opts ["-m" "nrepl.cmdline" "--port" "7897"
+                               "--middleware" "[cider.nrepl/cider-middleware]"]}
+
+           :test {:extra-paths ["test" "test/resources"]
+                  :extra-deps {lambdaisland/kaocha {:mvn/version "1.91.1392"}}
+                  :main-opts ["-m" "kaocha.runner" "--config-file" "tests.edn"]}}}
